@@ -18,7 +18,7 @@ High-converting waitlist landing page for **Stockbase** - The Operating System f
 ### Technical Features
 - **Real Waitlist Collection** - Supabase database integration
 - **Email Confirmation** - Automated welcome emails via Resend
-- **Analytics Tracking** - Comprehensive PostHog event tracking
+- **Analytics Tracking** - Comprehensive Google Analytics 4 event tracking
 - **Serverless API** - Vercel Functions for form submission
 - **TypeScript** - Full type safety throughout
 - **Responsive Design** - Mobile-first Tailwind CSS implementation
@@ -32,7 +32,7 @@ High-converting waitlist landing page for **Stockbase** - The Operating System f
 - Accounts created on:
   - [Supabase](https://supabase.com) (database)
   - [Resend](https://resend.com) (email)
-  - [PostHog](https://posthog.com) (analytics)
+  - [Google Analytics](https://analytics.google.com) (analytics)
   - [Google AI Studio](https://ai.google.dev) (Gemini API)
 
 ### Installation
@@ -65,7 +65,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 For detailed setup instructions including:
 - Supabase database configuration
 - Resend email setup with domain verification
-- PostHog analytics dashboard setup
+- Google Analytics 4 dashboard setup
 - Environment variables for production
 - Testing and monitoring
 
@@ -86,7 +86,7 @@ For detailed setup instructions including:
 | **AI/LLM** | Google Gemini API |
 | **Database** | Supabase (PostgreSQL) |
 | **Email** | Resend |
-| **Analytics** | PostHog |
+| **Analytics** | Google Analytics 4 |
 | **Deployment** | Vercel |
 
 ---
@@ -103,7 +103,7 @@ stockbase-sign-up/
 │   ├── WaitlistModal.tsx       # Main modal (form + chat modes)
 │   └── ChatWidget.tsx          # Standalone chat widget
 ├── lib/
-│   └── analytics.ts            # PostHog analytics utilities
+│   └── analytics.ts            # Google Analytics 4 utilities
 ├── App.tsx                     # Root application component
 ├── index.tsx                   # React entry point
 ├── index.html                  # HTML template with Tailwind config
@@ -124,9 +124,8 @@ Required environment variables (see [.env.example](.env.example)):
 # Google Gemini AI
 API_KEY=your_gemini_api_key
 
-# PostHog Analytics
-VITE_POSTHOG_API_KEY=your_posthog_key
-VITE_POSTHOG_HOST=https://us.i.posthog.com
+# Google Analytics 4
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 
 # Supabase Database
 SUPABASE_URL=https://your-project.supabase.co
@@ -145,21 +144,23 @@ RESEND_API_KEY=your_resend_api_key
 
 ## 📊 Analytics Events Tracked
 
-PostHog automatically tracks:
+Google Analytics 4 automatically tracks:
 
 | Event | Description |
 |-------|-------------|
+| `page_view` | Initial page load |
 | `modal_opened` | When waitlist modal appears |
 | `modal_closed` | When modal is dismissed |
-| `cta_clicked` | Hero button or floating chat button clicks |
-| `waitlist_form_started` | User begins filling form |
+| `select_promotion` | Hero button or floating chat button clicks |
+| `begin_checkout` | User begins filling form |
 | `form_field_focused` | Individual field interactions |
-| `waitlist_form_submitted` | Form submission attempt |
-| `waitlist_signup_success` | Successful waitlist addition |
+| `generate_lead` | Form submission attempt |
+| `purchase` | Successful waitlist addition (conversion) |
 | `chat_mode_entered` | User switches to AI chat |
 | `chat_message_sent` | User sends chat message |
-| `chat_suggestion_clicked` | Pre-suggested question clicked |
+| `select_content` | Pre-suggested question clicked |
 | `chat_limit_reached` | 3-interaction limit hit |
+| `exception` | Form errors |
 
 ---
 
@@ -217,8 +218,8 @@ SELECT * FROM waitlist_stats;
 
 ### Check Analytics
 
-1. Go to PostHog dashboard
-2. Navigate to **Live Events**
+1. Go to Google Analytics dashboard
+2. Navigate to **Reports** → **Realtime**
 3. Interact with your site and watch events appear in real-time
 
 ---
@@ -264,9 +265,10 @@ Security features implemented:
 - Ensure `from` email uses verified domain
 
 **Analytics not tracking:**
-- Confirm PostHog API key has `VITE_` prefix
+- Confirm GA Measurement ID has `VITE_` prefix
+- Check format is `G-XXXXXXXXXX`
 - Check browser console for errors
-- Disable ad blockers during testing
+- Disable ad blockers during testing (they block Google Analytics)
 
 See [SETUP.md](SETUP.md#common-issues) for detailed troubleshooting.
 

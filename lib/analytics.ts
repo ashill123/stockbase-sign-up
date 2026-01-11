@@ -1,157 +1,173 @@
-import posthog from 'posthog-js';
+import ReactGA from 'react-ga4';
 
-// PostHog configuration
-const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_API_KEY;
-const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';
+// Google Analytics 4 configuration
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
-// Initialize PostHog
+// Initialize Google Analytics
 export function initAnalytics() {
   if (typeof window === 'undefined') return;
 
-  if (!POSTHOG_KEY) {
-    console.warn('PostHog API key not found. Analytics disabled.');
+  if (!GA_MEASUREMENT_ID) {
+    console.warn('Google Analytics Measurement ID not found. Analytics disabled.');
     return;
   }
 
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    person_profiles: 'identified_only',
-    capture_pageview: true,
-    capture_pageleave: true,
-    autocapture: true,
-    session_recording: {
-      recordCrossOriginIframes: false,
-    },
-    loaded: (posthog) => {
-      if (import.meta.env.DEV) {
-        posthog.debug();
-      }
+  ReactGA.initialize(GA_MEASUREMENT_ID, {
+    gaOptions: {
+      debug_mode: import.meta.env.DEV,
     },
   });
+
+  // Send initial pageview
+  ReactGA.send({ hitType: 'pageview', page: window.location.pathname });
 }
 
 // Analytics event tracking functions
 export const analytics = {
-  // Page views (automatically tracked by PostHog)
+  // Page views
   pageView: (pageName?: string) => {
-    if (pageName) {
-      posthog.capture('$pageview', { page: pageName });
-    }
+    ReactGA.send({
+      hitType: 'pageview',
+      page: pageName || window.location.pathname,
+    });
   },
 
-  // User interactions
-  track: (eventName: string, properties?: Record<string, any>) => {
-    posthog.capture(eventName, properties);
+  // Generic event tracking
+  track: (eventName: string, parameters?: Record<string, any>) => {
+    ReactGA.event(eventName, parameters);
   },
 
   // Modal events
   modalOpened: (mode: 'form' | 'chat', trigger: 'auto' | 'button' | 'cta') => {
-    posthog.capture('modal_opened', {
+    ReactGA.event('modal_opened', {
       mode,
       trigger,
-      timestamp: new Date().toISOString(),
+      event_category: 'engagement',
+      event_label: `${mode}_${trigger}`,
     });
   },
 
   modalClosed: (mode: 'form' | 'chat', duration?: number) => {
-    posthog.capture('modal_closed', {
+    ReactGA.event('modal_closed', {
       mode,
       duration_seconds: duration,
-      timestamp: new Date().toISOString(),
+      event_category: 'engagement',
+      event_label: mode,
     });
   },
 
   // Form events
   formStarted: () => {
-    posthog.capture('waitlist_form_started');
+    ReactGA.event('begin_checkout', {
+      event_category: 'conversion',
+      event_label: 'waitlist_form',
+    });
   },
 
   formFieldFocused: (fieldName: string) => {
-    posthog.capture('form_field_focused', { field: fieldName });
+    ReactGA.event('form_field_focused', {
+      field_name: fieldName,
+      event_category: 'engagement',
+      event_label: fieldName,
+    });
   },
 
   formSubmitted: (email: string, firstName: string) => {
-    posthog.capture('waitlist_form_submitted', {
-      email_domain: email.split('@')[1],
-      timestamp: new Date().toISOString(),
+    const emailDomain = email.split('@')[1];
+
+    ReactGA.event('generate_lead', {
+      event_category: 'conversion',
+      event_label: 'waitlist_submission',
+      email_domain: emailDomain,
+      user_type: emailDomain.includes('gmail') ? 'consumer' : 'business',
     });
 
-    // Identify user for future tracking
-    posthog.identify(email, {
-      email,
-      first_name: firstName,
-      signup_date: new Date().toISOString(),
+    // Set user properties for enhanced tracking
+    ReactGA.gtag('set', 'user_properties', {
+      signup_date: new Date().toISOString().split('T')[0],
       source: 'website',
     });
   },
 
   formSuccess: () => {
-    posthog.capture('waitlist_signup_success');
+    ReactGA.event('purchase', {
+      event_category: 'conversion',
+      event_label: 'waitlist_signup_success',
+      value: 1, // Assign value to track conversion value
+      currency: 'USD',
+    });
   },
 
   formError: (errorMessage: string) => {
-    posthog.capture('waitlist_form_error', {
-      error: errorMessage,
-      timestamp: new Date().toISOString(),
+    ReactGA.event('exception', {
+      description: errorMessage,
+      fatal: false,
+      event_category: 'error',
+      event_label: 'waitlist_form_error',
     });
   },
 
   // Chat events
   chatModeEntered: (source: 'button' | 'modal_link') => {
-    posthog.capture('chat_mode_entered', { source });
+    ReactGA.event('chat_mode_entered', {
+      source,
+      event_category: 'engagement',
+      event_label: `chat_from_${source}`,
+    });
   },
 
   chatMessageSent: (messageLength: number, isFirstMessage: boolean) => {
-    posthog.capture('chat_message_sent', {
+    ReactGA.event('chat_message_sent', {
       message_length: messageLength,
       is_first_message: isFirstMessage,
-      timestamp: new Date().toISOString(),
+      event_category: 'engagement',
+      event_label: isFirstMessage ? 'first_message' : 'subsequent_message',
     });
   },
 
   chatSuggestionClicked: (suggestionText: string) => {
-    posthog.capture('chat_suggestion_clicked', {
-      suggestion: suggestionText,
+    ReactGA.event('select_content', {
+      content_type: 'chat_suggestion',
+      item_id: suggestionText.substring(0, 50),
+      event_category: 'engagement',
+      event_label: 'suggestion_clicked',
     });
   },
 
   chatLimitReached: (interactionCount: number) => {
-    posthog.capture('chat_limit_reached', {
+    ReactGA.event('chat_limit_reached', {
       total_interactions: interactionCount,
-      timestamp: new Date().toISOString(),
+      event_category: 'engagement',
+      event_label: 'freemium_gate',
     });
   },
 
   chatResponseReceived: (responseLength: number, timeToRespond?: number) => {
-    posthog.capture('chat_response_received', {
+    ReactGA.event('chat_response_received', {
       response_length: responseLength,
       response_time_ms: timeToRespond,
+      event_category: 'engagement',
+      event_label: 'ai_response',
     });
   },
 
   // CTA events
   ctaClicked: (location: 'hero' | 'floating_button') => {
-    posthog.capture('cta_clicked', {
-      location,
-      timestamp: new Date().toISOString(),
+    ReactGA.event('select_promotion', {
+      promotion_name: 'waitlist_cta',
+      creative_slot: location,
+      event_category: 'engagement',
+      event_label: `cta_${location}`,
     });
   },
 
   // Engagement metrics
   timeOnPage: (seconds: number) => {
-    posthog.capture('time_on_page', {
-      duration_seconds: seconds,
+    ReactGA.event('timing_complete', {
+      name: 'time_on_page',
+      value: seconds,
+      event_category: 'engagement',
     });
-  },
-
-  // User identification
-  identify: (email: string, properties?: Record<string, any>) => {
-    posthog.identify(email, properties);
-  },
-
-  // Reset on logout/clear
-  reset: () => {
-    posthog.reset();
   },
 };
 

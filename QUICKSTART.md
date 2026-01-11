@@ -21,13 +21,15 @@ Follow these steps to get your waitlist fully operational.
    - Go to **Domains** → Add your domain
    - Update `api/submit-waitlist.ts` line 78 with your domain
 
-## ✅ Step 3: Set Up PostHog (3 minutes)
+## ✅ Step 3: Set Up Google Analytics 4 (3 minutes)
 
-1. Go to [posthog.com/signup](https://posthog.com/signup)
-2. Create project: `Stockbase Waitlist`
-3. Go to **Project Settings** (gear icon)
-4. Copy **Project API Key** → Add to `.env.local` as `VITE_POSTHOG_API_KEY`
-5. Note the **Host** (usually `https://us.i.posthog.com`) → Add as `VITE_POSTHOG_HOST`
+1. Go to [analytics.google.com](https://analytics.google.com/)
+2. Create Account → Create Property: `Stockbase Waitlist`
+3. Set up Web Data Stream → Enter your website URL
+4. Copy **Measurement ID** (format: `G-XXXXXXXXXX`)
+5. Add to `.env.local` as `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
+
+**See [GOOGLE_ANALYTICS_SETUP.md](GOOGLE_ANALYTICS_SETUP.md) for detailed instructions.**
 
 ## ✅ Step 4: Gemini API (Already Have)
 
@@ -55,10 +57,9 @@ vercel deploy --prod
 1. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
 2. Select your project
 3. **Settings** → **Environment Variables**
-4. Add all 6 variables from your `.env.local`:
+4. Add all 5 variables from your `.env.local`:
    - `API_KEY`
-   - `VITE_POSTHOG_API_KEY`
-   - `VITE_POSTHOG_HOST`
+   - `VITE_GA_MEASUREMENT_ID`
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_KEY`
    - `RESEND_API_KEY`
@@ -69,7 +70,7 @@ vercel deploy --prod
 ```bash
 vercel env add API_KEY
 # Paste value, select Production
-# Repeat for all 6 variables
+# Repeat for all 5 variables
 ```
 
 ## ✅ Step 7: Redeploy
@@ -95,8 +96,9 @@ Check your inbox for the welcome email
 
 ### Test Analytics
 1. Visit your site
-2. Open PostHog → **Live Events**
-3. Click around and watch events appear
+2. Open Google Analytics → **Reports** → **Realtime**
+3. You should see yourself as an active user
+4. Click around and watch events appear in real-time
 
 ---
 
@@ -119,9 +121,10 @@ SELECT * FROM waitlist ORDER BY created_at DESC;
 SELECT * FROM waitlist_stats;
 ```
 
-**PostHog (Analytics)**
-- Dashboard → Live Events (real-time)
-- Create conversion funnel: modal_opened → form_submitted → signup_success
+**Google Analytics (Analytics)**
+- Reports → Realtime (see active users and events)
+- Reports → Engagement → Events (see all events)
+- Explore → Create conversion funnel: page_view → modal_opened → generate_lead → purchase
 
 **Resend (Emails)**
 - Dashboard → Emails → See all sent emails and delivery status
@@ -141,9 +144,10 @@ SELECT * FROM waitlist_stats;
 3. Check Resend dashboard for delivery status
 
 **Analytics not working:**
-1. Ensure `VITE_POSTHOG_API_KEY` has the `VITE_` prefix
-2. Check browser console for PostHog errors
-3. Disable ad blockers
+1. Ensure `VITE_GA_MEASUREMENT_ID` has the `VITE_` prefix
+2. Check format is `G-XXXXXXXXXX`
+3. Check browser console for errors
+4. Disable ad blockers (they block Google Analytics)
 
 ---
 
