@@ -4,11 +4,17 @@ import { MessageSquare } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import WaitlistModal from './components/WaitlistModal';
+import { initAnalytics, analytics } from './lib/analytics';
 
 export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'form' | 'chat'>('form');
   const [hasInteracted, setHasInteracted] = useState(false);
+
+  // Initialize analytics on mount
+  useEffect(() => {
+    initAnalytics();
+  }, []);
 
   useEffect(() => {
     // Sequence Timing:
@@ -31,8 +37,9 @@ export default function App() {
     setHasInteracted(true);
     setModalMode(mode);
     setIsModalOpen(true);
+    analytics.modalOpened(mode, 'button');
   };
-  
+
   const closeModal = () => {
     setHasInteracted(true);
     setIsModalOpen(false);
@@ -54,8 +61,11 @@ export default function App() {
         <Header />
         
         <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <Hero 
-            onCtaClick={() => openModal('form')} 
+          <Hero
+            onCtaClick={() => {
+              analytics.ctaClicked('hero');
+              openModal('form');
+            }}
             isModalOpen={isModalOpen}
           />
         </main>
@@ -82,7 +92,11 @@ export default function App() {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
-                onClick={() => openModal('chat')}
+                onClick={() => {
+                    analytics.ctaClicked('floating_button');
+                    analytics.chatModeEntered('button');
+                    openModal('chat');
+                }}
                 className="fixed bottom-6 right-6 z-40 bg-slate-900/80 border border-brand-orange/40 text-brand-orange p-3 rounded-full shadow-[0_0_20px_rgba(212,165,116,0.15)] hover:border-brand-orange hover:shadow-[0_0_30px_rgba(212,165,116,0.3)] hover:scale-105 transition-all group backdrop-blur-sm"
             >
                 <div className="absolute inset-0 bg-brand-orange/10 rounded-full animate-ping opacity-20 pointer-events-none" />

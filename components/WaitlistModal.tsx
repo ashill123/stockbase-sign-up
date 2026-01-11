@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, PlayCircle, Layers, HelpCircle } from 'lucide-react';
+import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, PlayCircle, Layers, HelpCircle, AlertCircle } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { analytics } from '../lib/analytics';
 
 interface WaitlistModalProps {
   onClose: () => void;
@@ -46,8 +47,11 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
   const [isLoading, setIsLoading] = useState(false);
   const [interactionCount, setInteractionCount] = useState(0);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
-  
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '' });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const modalOpenTime = useRef<number>(Date.now());
 
   // Auto-scroll chat
   useEffect(() => {
@@ -56,28 +60,87 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
     }
   }, [messages, mode]);
 
-  // Load chat history/count
+  // Load chat history/count and track modal open
   useEffect(() => {
     const savedCount = localStorage.getItem('stockbase_chat_count');
     if (savedCount) setInteractionCount(parseInt(savedCount, 10));
+
+    // Track modal opened
+    analytics.modalOpened(mode, initialMode === 'form' ? 'auto' : 'button');
+    modalOpenTime.current = Date.now();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormState('submitting');
-    setTimeout(() => setFormState('complete'), 1500);
+    setErrorMessage(null);
+
+    // Track form submission
+    analytics.formSubmitted(formData.email, formData.firstName);
+
+    try {
+      const response = await fetch('/api/submit-waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 409) {
+          setErrorMessage('This email is already on the waitlist.');
+        } else if (response.status === 400) {
+          setErrorMessage(data.error || 'Please check your information.');
+        } else {
+          setErrorMessage('Something went wrong. Please try again.');
+        }
+
+        analytics.formError(data.error || 'Submission failed');
+        setFormState('idle');
+        return;
+      }
+
+      // Success
+      analytics.formSuccess();
+      setFormState('complete');
+
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setErrorMessage('Network error. Please check your connection.');
+      analytics.formError('Network error');
+      setFormState('idle');
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent, overrideText?: string) => {
     e?.preventDefault();
     const textToSend = overrideText || inputValue;
-    
+    const startTime = Date.now();
+
     if (!textToSend.trim() || isLoading) return;
 
     if (interactionCount >= MAX_FREE_INTERACTIONS) {
       setGateMessage("Preview limit reached. Join the waitlist to continue.");
+      analytics.chatLimitReached(interactionCount);
       setMode('form');
       return;
+    }
+
+    // Track message sent
+    const isFirstMessage = messages.length === 0;
+    analytics.chatMessageSent(textToSend.length, isFirstMessage);
+
+    // Track if it was a suggestion click
+    if (overrideText) {
+      analytics.chatSuggestionClicked(overrideText);
     }
 
     setInputValue('');
@@ -109,6 +172,10 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
         }
       }
 
+      // Track response received
+      const responseTime = Date.now() - startTime;
+      analytics.chatResponseReceived(fullResponse.length, responseTime);
+
       const newCount = interactionCount + 1;
       setInteractionCount(newCount);
       localStorage.setItem('stockbase_chat_count', newCount.toString());
@@ -116,6 +183,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
       if (newCount >= MAX_FREE_INTERACTIONS) {
         setTimeout(() => {
            setGateMessage("Questions answered. Please secure your spot to continue.");
+           analytics.chatLimitReached(newCount);
            setMode('form');
         }, 2500);
       }
@@ -236,12 +304,18 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
                                 remaining={Math.max(0, MAX_FREE_INTERACTIONS - interactionCount)}
                             />
                         ) : (
-                            <FormView 
+                            <FormView
                                 key="form"
                                 formState={formState}
                                 handleSubmit={handleSubmit}
-                                onSwitchToChat={() => setMode('chat')}
+                                onSwitchToChat={() => {
+                                    analytics.chatModeEntered('modal_link');
+                                    setMode('chat');
+                                }}
                                 gateMessage={gateMessage}
+                                errorMessage={errorMessage}
+                                formData={formData}
+                                setFormData={setFormData}
                             />
                         )}
                     </AnimatePresence>
@@ -302,7 +376,7 @@ const SuccessView = ({ onClose }: { onClose: () => void }) => (
     </motion.div>
 );
 
-const FormView = ({ formState, handleSubmit, onSwitchToChat, gateMessage }: any) => (
+const FormView = ({ formState, handleSubmit, onSwitchToChat, gateMessage, errorMessage, formData, setFormData }: any) => (
     <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -310,13 +384,24 @@ const FormView = ({ formState, handleSubmit, onSwitchToChat, gateMessage }: any)
         className="p-8 md:p-12 h-full flex flex-col justify-center relative z-20"
     >
         {gateMessage && (
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6 p-3 bg-brand-orange/5 border border-brand-orange/20 rounded-md text-xs text-brand-orange/90 flex items-center gap-3 font-sans"
             >
                 <div className="w-1.5 h-1.5 bg-brand-orange rounded-full shrink-0" />
                 {gateMessage}
+            </motion.div>
+        )}
+
+        {errorMessage && (
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-xs text-red-400 flex items-center gap-3 font-sans"
+            >
+                <AlertCircle size={16} className="shrink-0" />
+                {errorMessage}
             </motion.div>
         )}
 
@@ -329,10 +414,41 @@ const FormView = ({ formState, handleSubmit, onSwitchToChat, gateMessage }: any)
 
         <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
-                <InputGroup id="first" label="First Name" icon={User} delay={0.1} />
-                <InputGroup id="last" label="Last Name" icon={User} delay={0.15} />
+                <InputGroup
+                    id="firstName"
+                    label="First Name"
+                    icon={User}
+                    delay={0.1}
+                    value={formData.firstName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setFormData({ ...formData, firstName: e.target.value });
+                        analytics.formFieldFocused('firstName');
+                    }}
+                />
+                <InputGroup
+                    id="lastName"
+                    label="Last Name"
+                    icon={User}
+                    delay={0.15}
+                    value={formData.lastName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setFormData({ ...formData, lastName: e.target.value });
+                        analytics.formFieldFocused('lastName');
+                    }}
+                />
             </div>
-            <InputGroup id="email" label="Work Email" icon={Mail} type="email" delay={0.2} />
+            <InputGroup
+                id="email"
+                label="Work Email"
+                icon={Mail}
+                type="email"
+                delay={0.2}
+                value={formData.email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    analytics.formFieldFocused('email');
+                }}
+            />
             
             <motion.button
                 initial={{ opacity: 0, y: 10 }}
@@ -480,20 +596,24 @@ const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLo
     </motion.div>
 );
 
-const InputGroup = ({ id, label, icon: Icon, type="text", delay }: any) => (
-    <motion.div 
+const InputGroup = ({ id, label, icon: Icon, type="text", delay, value, onChange }: any) => (
+    <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay }}
         className="space-y-1.5 group"
     >
-        <label className="text-[10px] font-heading font-bold uppercase tracking-widest text-brand-light/30 group-focus-within:text-brand-orange transition-colors ml-1">
+        <label htmlFor={id} className="text-[10px] font-heading font-bold uppercase tracking-widest text-brand-light/30 group-focus-within:text-brand-orange transition-colors ml-1">
             {label}
         </label>
         <div className="relative">
-            <input 
+            <input
+                id={id}
+                name={id}
                 required
                 type={type}
+                value={value}
+                onChange={onChange}
                 className="w-full bg-slate-900/50 border border-white/10 text-brand-light p-3.5 pl-4 text-sm focus:outline-none focus:border-brand-orange/40 focus:bg-slate-900 transition-all rounded-md placeholder:text-brand-light/10 font-normal"
                 placeholder=" "
             />
