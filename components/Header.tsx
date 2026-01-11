@@ -9,7 +9,7 @@ const Header: React.FC = () => {
         <img
           src={logoUrl}
           alt="Stockbase logo"
-          className="h-7 sm:h-8 w-auto max-w-[140px] object-contain"
+          className="h-[84px] sm:h-[96px] w-auto max-w-[420px] object-contain"
         />
       </div>
     </header>

@@ -30,14 +30,13 @@ export default async function handler(
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
-    // Add your custom domain here: 'https://yourdomain.com'
-  ].filter(Boolean);
+    'https://stockbase-sign-up.vercel.app',
+    // Add additional domains here.
+  ];
 
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

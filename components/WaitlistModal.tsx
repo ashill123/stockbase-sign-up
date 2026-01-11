@@ -263,7 +263,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
                         <img
                             src={logoUrl}
                             alt="Stockbase logo"
-                            className="h-5 sm:h-6 w-auto max-w-[110px] object-contain opacity-80"
+                            className="h-[60px] sm:h-[72px] w-auto max-w-[330px] object-contain opacity-80"
                         />
                         <button 
                             onClick={handleClose}
