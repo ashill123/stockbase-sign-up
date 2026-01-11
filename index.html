@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stockbase | Operating System for Trades</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Phudu:wght@700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              // Body text: Antique Olive Roman (fallback to generic sans)
+              sans: ['"Antique Olive"', 'Helvetica', 'Arial', 'sans-serif'],
+              // Headings: Phudu
+              heading: ['Phudu', 'cursive'],
+            },
+            fontWeight: {
+              normal: '400', // Roman
+              bold: '700', // Phudu Bold
+              extrabold: '800', // Ultra Bold for Phudu
+            },
+            colors: {
+              slate: {
+                850: '#2c353b',
+                900: '#1e2529',
+                950: '#0f1315',
+              },
+              brand: {
+                dark: '#3d4a52', // Steel
+                orange: '#d4a574', // Orange/Gold
+                light: '#f7f7f5', // Off-white
+              }
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(to right, rgba(212, 165, 116, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(212, 165, 116, 0.05) 1px, transparent 1px)",
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #3d4a52;
+        color: #f7f7f5;
+        font-family: 'Antique Olive', Helvetica, Arial, sans-serif;
+        font-weight: 400; /* Roman by default */
+      }
+      
+      /* Moving Grid Animation */
+      .bg-grid {
+        background-size: 40px 40px;
+        mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        animation: gridMove 30s linear infinite;
+        opacity: 0.15; 
+      }
+
+      @keyframes gridMove {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(40px); }
+      }
+
+      /* Subtle Glow */
+      .drop-shadow-subtle {
+        filter: drop-shadow(0 0 2px rgba(212, 165, 116, 0.3));
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
