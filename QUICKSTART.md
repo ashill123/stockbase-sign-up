@@ -35,7 +35,7 @@ Follow these steps to get your waitlist fully operational.
 
 You should already have this in your `.env.local`:
 ```bash
-API_KEY=your_existing_gemini_key
+GEMINI_API_KEY=your_existing_gemini_key
 ```
 
 ## ✅ Step 5: Deploy to Vercel (2 minutes)
@@ -58,7 +58,7 @@ vercel deploy --prod
 2. Select your project
 3. **Settings** → **Environment Variables**
 4. Add all 5 variables from your `.env.local`:
-   - `API_KEY`
+   - `GEMINI_API_KEY`
    - `VITE_GA_MEASUREMENT_ID`
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_KEY`
@@ -68,7 +68,7 @@ vercel deploy --prod
 
 **Option B: Via CLI**
 ```bash
-vercel env add API_KEY
+vercel env add GEMINI_API_KEY
 # Paste value, select Production
 # Repeat for all 5 variables
 ```

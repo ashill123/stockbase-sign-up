@@ -73,13 +73,14 @@ export const analytics = {
   },
 
   formSubmitted: (email: string, firstName: string) => {
-    const emailDomain = email.split('@')[1];
+    const emailDomain = email.includes('@') ? email.split('@')[1] : 'unknown';
+    const isGmail = emailDomain !== 'unknown' && emailDomain.includes('gmail');
 
     ReactGA.event('generate_lead', {
       event_category: 'conversion',
       event_label: 'waitlist_submission',
       email_domain: emailDomain,
-      user_type: emailDomain.includes('gmail') ? 'consumer' : 'business',
+      user_type: isGmail ? 'consumer' : 'business',
     });
 
     // Set user properties for enhanced tracking

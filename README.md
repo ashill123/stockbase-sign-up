@@ -122,7 +122,7 @@ Required environment variables (see [.env.example](.env.example)):
 
 ```bash
 # Google Gemini AI
-API_KEY=your_gemini_api_key
+GEMINI_API_KEY=your_gemini_api_key
 
 # Google Analytics 4
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
@@ -138,6 +138,7 @@ RESEND_API_KEY=your_resend_api_key
 **Important:**
 - Never commit `.env.local` to version control
 - Use `VITE_` prefix for client-side variables
+- `GEMINI_API_KEY` stays server-side only
 - Set all variables in Vercel dashboard for production
 
 ---

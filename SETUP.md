@@ -203,9 +203,8 @@ Fill in all values from the setup steps above.
 4. Click "Save"
 
 **Required Variables:**
-- `API_KEY` (Gemini)
-- `VITE_POSTHOG_API_KEY` (PostHog)
-- `VITE_POSTHOG_HOST` (PostHog)
+- `GEMINI_API_KEY` (Gemini, server-side)
+- `VITE_GA_MEASUREMENT_ID` (Google Analytics 4)
 - `SUPABASE_URL` (Supabase)
 - `SUPABASE_SERVICE_KEY` (Supabase)
 - `RESEND_API_KEY` (Resend)

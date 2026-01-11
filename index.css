@@ -1,0 +1,4 @@
+/* Minimal overrides for utility classes not defined by Tailwind CDN. */
+.bg-radial-gradient {
+  background-image: radial-gradient(circle at center, transparent 0%, rgba(61, 74, 82, 0.1) 45%, rgba(0, 0, 0, 0.3) 100%);
+}

@@ -1,35 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, PlayCircle, Layers, HelpCircle, AlertCircle } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 import { analytics } from '../lib/analytics';
+
+const logoUrl = new URL('../Stockbase Main.svg', import.meta.url).href;
 
 interface WaitlistModalProps {
   onClose: () => void;
   initialMode?: 'form' | 'chat';
+  openTrigger?: 'auto' | 'button' | 'cta';
 }
 
 interface Message {
   role: 'user' | 'model';
   text: string;
 }
-
-const SYSTEM_INSTRUCTION = `You are the specialized AI Solution Engineer for Stockbase. 
-Stockbase is the "Operating System for Trades" - a next-generation platform for trade contractors (Plumbing, HVAC, Electrical).
-
-CORE KNOWLEDGE BASE:
-- **Mission:** Eliminate the "guessing game" in inventory and logistics.
-- **Function:** specialized inventory tracking, procurement automation, and warehouse/van logistics.
-- **Integrations:** We integrate deeply with Simpro, ServiceTitan, and AroFlo.
-- **Features:** Real-time stock levels, project allocation, supplier integration, waste tracking (e.g., copper pipe scraps).
-- **Status:** Currently in highly exclusive Closed Beta.
-
-BEHAVIORAL RULES:
-1. Keep answers "industrial/professional" in tone. Avoid fluff, but be comprehensive if needed.
-2. Do not use emojis. Use precise language.
-3. If asked about pricing, say "Pricing is customized based on volume during the beta period."
-4. If asked "Does it work offline?", answer "Yes, the mobile app creates a local ledger that syncs when connection is restored."
-5. If the user asks for a "simulation", briefly describe a scenario: "Simulation: Technician takes 15mm copper elbow. Barcode scan > Stockbase deducts from Van 4 > Syncs to Simpro Job #2938 > Procurement alert sent for restock."`;
 
 const MAX_FREE_INTERACTIONS = 3;
 
@@ -39,7 +24,11 @@ const SUGGESTIONS = [
     { text: "Can you track copper waste?", highlight: "copper waste", icon: HelpCircle },
 ];
 
-const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'form' }) => {
+const WaitlistModal: React.FC<WaitlistModalProps> = ({
+  onClose,
+  initialMode = 'form',
+  openTrigger = 'auto',
+}) => {
   const [mode, setMode] = useState<'form' | 'chat'>(initialMode);
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'complete'>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -66,9 +55,15 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
     if (savedCount) setInteractionCount(parseInt(savedCount, 10));
 
     // Track modal opened
-    analytics.modalOpened(mode, initialMode === 'form' ? 'auto' : 'button');
+    analytics.modalOpened(mode, openTrigger);
     modalOpenTime.current = Date.now();
   }, []);
+
+  const handleClose = () => {
+    const durationSeconds = Math.max(0, Math.round((Date.now() - modalOpenTime.current) / 1000));
+    analytics.modalClosed(mode, durationSeconds);
+    onClose();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,29 +143,24 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const chat = ai.chats.create({
-        model: 'gemini-3-flash-preview',
-        config: { systemInstruction: SYSTEM_INSTRUCTION, maxOutputTokens: 1000 },
-        history: messages.map(m => ({ role: m.role, parts: [{ text: m.text }] }))
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: textToSend,
+          history: messages,
+          profile: 'detailed',
+        }),
       });
 
-      const result = await chat.sendMessageStream({ message: textToSend });
-      
-      let fullResponse = "";
-      setMessages(prev => [...prev, { role: 'model', text: "" }]);
-
-      for await (const chunk of result) {
-        const text = chunk.text;
-        if (text) {
-          fullResponse += text;
-          setMessages(prev => {
-            const newHistory = [...prev];
-            newHistory[newHistory.length - 1].text = fullResponse;
-            return newHistory;
-          });
-        }
+      if (!response.ok) {
+        throw new Error('Chat request failed');
       }
+
+      const data = await response.json();
+      const fullResponse = typeof data.text === 'string' ? data.text : 'Connection interrupted. Please try again.';
+
+      setMessages(prev => [...prev, { role: 'model', text: fullResponse }]);
 
       // Track response received
       const responseTime = Date.now() - startTime;
@@ -202,7 +192,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, transition: { duration: 0.2 } }}
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
       />
 
@@ -222,7 +212,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
             <div className="flex-grow flex flex-col h-full">
                 {/* Header */}
                 <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-20 bg-slate-900/50">
-                    <div className="flex items-center gap-3 w-full">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                         <AnimatePresence mode="wait">
                             {mode === 'chat' ? (
                                 <motion.div 
@@ -269,29 +259,26 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ onClose, initialMode = 'f
                             )}
                         </AnimatePresence>
                     </div>
-                    {mode !== 'chat' && (
+                    <div className="flex items-center gap-2 shrink-0">
+                        <img
+                            src={logoUrl}
+                            alt="Stockbase logo"
+                            className="h-5 sm:h-6 w-auto max-w-[110px] object-contain opacity-80"
+                        />
                         <button 
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="p-2 -mr-2 text-brand-light/30 hover:text-brand-light transition-colors"
                         >
                             <X size={20} />
                         </button>
-                    )}
-                     {mode === 'chat' && (
-                        <button 
-                            onClick={onClose}
-                            className="p-2 -mr-2 text-brand-light/30 hover:text-brand-light transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-                    )}
+                    </div>
                 </div>
 
                 {/* Body Content Switcher */}
                 <div className="flex-grow flex flex-col relative overflow-hidden">
                     <AnimatePresence mode="wait" initial={false}>
                         {formState === 'complete' ? (
-                            <SuccessView onClose={onClose} />
+                            <SuccessView onClose={handleClose} />
                         ) : mode === 'chat' ? (
                             <ChatView 
                                 key="chat"

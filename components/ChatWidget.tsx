@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, X, Bot, ChevronRight, Lock } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { Send, X, Bot, ChevronRight, Lock } from 'lucide-react';
 
 interface ChatWidgetProps {
   onOpenWaitlist: () => void;
@@ -11,23 +10,6 @@ interface Message {
   role: 'user' | 'model';
   text: string;
 }
-
-const SYSTEM_INSTRUCTION = `You are the specialized AI Solution Engineer for Stockbase. 
-Stockbase is the "Operating System for Trades" - a next-generation platform for trade contractors (Plumbing, HVAC, Electrical).
-
-CORE KNOWLEDGE BASE:
-- **Mission:** Eliminate the "guessing game" in inventory and logistics.
-- **Function:** specialized inventory tracking, procurement automation, and warehouse/van logistics.
-- **Integrations:** We integrate deeply with Simpro, ServiceTitan, and AroFlo.
-- **Features:** Real-time stock levels, project allocation, supplier integration, waste tracking (e.g., copper pipe scraps).
-- **Status:** Currently in highly exclusive Closed Beta.
-
-BEHAVIORAL RULES:
-1. Keep answers concise (under 40 words) and "industrial/professional" in tone.
-2. Do not use emojis. Use precise language.
-3. If asked about pricing, say "Pricing is customized based on volume during the beta period."
-4. If asked "Does it work offline?", answer "Yes, the mobile app creates a local ledger that syncs when connection is restored."
-5. If the user asks about specific trade problems (e.g. "copper waste"), confirm we solve that specifically.`;
 
 const MAX_FREE_INTERACTIONS = 3;
 
@@ -69,36 +51,24 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const chat = ai.chats.create({
-        model: 'gemini-3-flash-preview', // High speed, low cost model
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          maxOutputTokens: 150, // Keep responses brief
-        },
-        history: messages.map(m => ({
-          role: m.role,
-          parts: [{ text: m.text }]
-        }))
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userText,
+          history: messages,
+          profile: 'concise',
+        }),
       });
 
-      const result = await chat.sendMessageStream({ message: userText });
-      
-      let fullResponse = "";
-      setMessages(prev => [...prev, { role: 'model', text: "" }]);
-
-      for await (const chunk of result) {
-        const text = chunk.text;
-        if (text) {
-          fullResponse += text;
-          setMessages(prev => {
-            const newHistory = [...prev];
-            const lastMsg = newHistory[newHistory.length - 1];
-            lastMsg.text = fullResponse;
-            return newHistory;
-          });
-        }
+      if (!response.ok) {
+        throw new Error('Chat request failed');
       }
+
+      const data = await response.json();
+      const fullResponse = typeof data.text === 'string' ? data.text : 'Connection interrupted. Please try again.';
+
+      setMessages(prev => [...prev, { role: 'model', text: fullResponse }]);
 
       // Increment Interaction Count
       const newCount = interactionCount + 1;

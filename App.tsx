@@ -9,6 +9,7 @@ import { initAnalytics, analytics } from './lib/analytics';
 export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'form' | 'chat'>('form');
+  const [modalTrigger, setModalTrigger] = useState<'auto' | 'button' | 'cta'>('auto');
   const [hasInteracted, setHasInteracted] = useState(false);
 
   // Initialize analytics on mount
@@ -24,6 +25,7 @@ export default function App() {
       setIsModalOpen((prev) => {
         if (!hasInteracted && !prev) {
           setModalMode('form');
+          setModalTrigger('auto');
           return true;
         }
         return prev;
@@ -33,11 +35,14 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [hasInteracted]);
 
-  const openModal = (mode: 'form' | 'chat' = 'form') => {
+  const openModal = (
+    mode: 'form' | 'chat' = 'form',
+    trigger: 'auto' | 'button' | 'cta' = 'button'
+  ) => {
     setHasInteracted(true);
     setModalMode(mode);
+    setModalTrigger(trigger);
     setIsModalOpen(true);
-    analytics.modalOpened(mode, 'button');
   };
 
   const closeModal = () => {
@@ -64,7 +69,7 @@ export default function App() {
           <Hero
             onCtaClick={() => {
               analytics.ctaClicked('hero');
-              openModal('form');
+              openModal('form', 'cta');
             }}
             isModalOpen={isModalOpen}
           />
@@ -81,6 +86,7 @@ export default function App() {
           <WaitlistModal 
             onClose={closeModal} 
             initialMode={modalMode} 
+            openTrigger={modalTrigger}
           />
         )}
       </AnimatePresence>
@@ -95,7 +101,7 @@ export default function App() {
                 onClick={() => {
                     analytics.ctaClicked('floating_button');
                     analytics.chatModeEntered('button');
-                    openModal('chat');
+                    openModal('chat', 'button');
                 }}
                 className="fixed bottom-6 right-6 z-40 bg-slate-900/80 border border-brand-orange/40 text-brand-orange p-3 rounded-full shadow-[0_0_20px_rgba(212,165,116,0.15)] hover:border-brand-orange hover:shadow-[0_0_30px_rgba(212,165,116,0.3)] hover:scale-105 transition-all group backdrop-blur-sm"
             >
