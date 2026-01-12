@@ -95,11 +95,16 @@ const SYSTEM_INSTRUCTIONS = {
   detailed: `${BASE_SYSTEM_PROMPT}
 
 Response style:
-- If the question is unrelated, answer briefly and then add one short line that clarifies what Stockbase is and why it may help.`,
+- Lead with the direct answer.
+- Use 2-4 short sentences. No long paragraphs.
+- If helpful, add up to 3 short bullet points.
+- If the question is unrelated, answer briefly and then add one short line that clarifies what Stockbase is and why it may help.
+- After the first response, you may ask one gentle grounding question at most once in the whole conversation.`,
   concise: `${BASE_SYSTEM_PROMPT}
 
 Response style:
 - Keep responses under 40 words when possible.
+- Prefer 1-2 short sentences.
 - If the question is unrelated, answer briefly and then add one short Stockbase line.`,
 };
 

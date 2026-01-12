@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, ChevronRight, Lock, Sparkles } from 'lucide-react';
+import { Send, X, Bot, ChevronRight, Lock } from 'lucide-react';
 import { getChatSessionId } from '../lib/chatSession';
 
 interface ChatWidgetProps {
@@ -15,32 +15,10 @@ interface Message {
 const MAX_FREE_INTERACTIONS = 3;
 
 const SUGGESTIONS = [
-  "I'm always running out of stock at the wrong time",
-  "I already use ServiceM8 - where does Stockbase fit?",
-  "Most of my admin happens at night",
-  "We have jobs booked but I don't fully trust our numbers",
-  "Quoting takes me way longer than it should",
-  "We keep over-ordering just in case",
-  "Is this another system I have to keep up to date?",
-  "How does this actually save me time?",
-  "What kind of businesses is this best for?",
-  "Can it help with quoting as well?",
-  "We're growing fast and things feel messy",
-  "Do I need to replace what I already use?",
-  "How early is early access, really?",
+  "Stock running low",
+  "Quoting takes long",
+  "Replace current systems?",
 ];
-
-const SUGGESTION_COUNT = 4;
-
-const getSuggestionSlice = (items: string[], count: number, offset: number) => {
-  if (items.length === 0) return [];
-  const limit = Math.min(count, items.length);
-  const slice: string[] = [];
-  for (let i = 0; i < limit; i += 1) {
-    slice.push(items[(offset + i) % items.length]);
-  }
-  return slice;
-};
 
 const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -129,9 +107,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
   };
 
   const isGateLocked = interactionCount >= MAX_FREE_INTERACTIONS;
-  const hasUserMessage = messages.some((msg) => msg.role === 'user');
-  const suggestionOffset = messages.length % SUGGESTIONS.length;
-  const suggestions = getSuggestionSlice(SUGGESTIONS, SUGGESTION_COUNT, suggestionOffset);
 
   return (
     <>
@@ -206,50 +181,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
                   </div>
                 </motion.div>
               ))}
-
-              {!hasUserMessage && suggestions.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-brand-light/50 text-[10px] uppercase tracking-widest font-bold">
-                    Suggested Questions
-                  </div>
-                  {suggestions.map((text, i) => (
-                    <button
-                      key={i}
-                      onClick={(e) => handleSendMessage(e, text)}
-                      className="w-full p-3 rounded-sm border border-white/5 bg-slate-800/40 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-start gap-2"
-                    >
-                      <div className="mt-0.5 p-1.5 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
-                        <Sparkles size={12} />
-                      </div>
-                      <span className="text-xs text-brand-light group-hover:text-white transition-colors">
-                        {text}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {hasUserMessage && suggestions.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <div className="text-brand-light/40 text-[10px] uppercase tracking-widest font-bold">
-                    Suggested Next
-                  </div>
-                  {suggestions.map((text, i) => (
-                    <button
-                      key={i}
-                      onClick={(e) => handleSendMessage(e, text)}
-                      className="w-full p-3 rounded-sm border border-white/5 bg-slate-800/30 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-start gap-2"
-                    >
-                      <div className="mt-0.5 p-1.5 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
-                        <Sparkles size={12} />
-                      </div>
-                      <span className="text-xs text-brand-light group-hover:text-white transition-colors">
-                        {text}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
               
               {isLoading && (
                  <div className="flex justify-start">
@@ -265,6 +196,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
 
             {/* Input Area */}
             <div className="p-4 bg-slate-950/50 border-t border-brand-orange/10">
+              {!isGateLocked && (
+                <div className="mb-3 flex gap-2 overflow-x-auto whitespace-nowrap">
+                  {SUGGESTIONS.map((text, i) => (
+                    <button
+                      key={i}
+                      onClick={(e) => handleSendMessage(e, text)}
+                      className="shrink-0 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 text-[11px] uppercase tracking-widest text-brand-light/70 transition-all hover:border-brand-orange/40 hover:text-brand-light"
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              )}
               {isGateLocked ? (
                 <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-2 text-xs text-brand-orange/70 justify-center pb-2 border-b border-brand-orange/5">

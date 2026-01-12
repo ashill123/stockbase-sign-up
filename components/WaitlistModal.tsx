@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, Layers, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Send, Layers, AlertCircle } from 'lucide-react';
 import { analytics } from '../lib/analytics';
 import { getChatSessionId } from '../lib/chatSession';
 
@@ -20,32 +20,10 @@ interface Message {
 const MAX_FREE_INTERACTIONS = 3;
 
 const SUGGESTIONS = [
-    "I'm always running out of stock at the wrong time",
-    "I already use ServiceM8 - where does Stockbase fit?",
-    "Most of my admin happens at night",
-    "We have jobs booked but I don't fully trust our numbers",
-    "Quoting takes me way longer than it should",
-    "We keep over-ordering just in case",
-    "Is this another system I have to keep up to date?",
-    "How does this actually save me time?",
-    "What kind of businesses is this best for?",
-    "Can it help with quoting as well?",
-    "We're growing fast and things feel messy",
-    "Do I need to replace what I already use?",
-    "How early is early access, really?",
+    "Stock running low",
+    "Quoting takes long",
+    "Replace current systems?",
 ];
-
-const SUGGESTION_COUNT = 4;
-
-const getSuggestionSlice = (items: string[], count: number, offset: number) => {
-    if (items.length === 0) return [];
-    const limit = Math.min(count, items.length);
-    const slice: string[] = [];
-    for (let i = 0; i < limit; i += 1) {
-        slice.push(items[(offset + i) % items.length]);
-    }
-    return slice;
-};
 
 const WaitlistModal: React.FC<WaitlistModalProps> = ({
   onClose,
@@ -500,8 +478,7 @@ const FormView = ({ formState, handleSubmit, onSwitchToChat, gateMessage, errorM
 );
 
 const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLoading, messagesEndRef, remaining }: any) => {
-    const suggestionOffset = messages.length % SUGGESTIONS.length;
-    const suggestions = getSuggestionSlice(SUGGESTIONS, SUGGESTION_COUNT, suggestionOffset);
+    const showSuggestions = remaining > 0;
 
     return (
         <motion.div
@@ -512,30 +489,6 @@ const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLo
         >
             {/* Messages */}
             <div className="flex-grow overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pb-32">
-                {messages.length === 0 && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center justify-center h-full space-y-4 pb-12"
-                    >
-                        <div className="text-brand-light/50 text-xs uppercase tracking-widest mb-2 font-bold">Suggested Questions</div>
-                        {suggestions.map((text, i) => (
-                            <button
-                                key={i}
-                                onClick={(e) => handleSendMessage(e, text)}
-                                className="w-full max-w-xs p-4 rounded-xl border border-white/5 bg-slate-900/40 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-center gap-3"
-                            >
-                                <div className="p-2 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
-                                    <Sparkles size={16} />
-                                </div>
-                                <span className="text-sm text-brand-light group-hover:text-white transition-colors">
-                                    {text}
-                                </span>
-                            </button>
-                        ))}
-                    </motion.div>
-                )}
-
                 {messages.map((msg: Message, idx: number) => (
                     <motion.div 
                         initial={{ opacity: 0, y: 10 }}
@@ -565,28 +518,6 @@ const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLo
                         </div>
                     </motion.div>
                 ))}
-
-                {messages.length > 0 && suggestions.length > 0 && (
-                    <div className="pt-2">
-                        <div className="text-brand-light/40 text-[10px] uppercase tracking-widest font-bold mb-2">Suggested Next</div>
-                        <div className="space-y-2">
-                            {suggestions.map((text, i) => (
-                                <button
-                                    key={i}
-                                    onClick={(e) => handleSendMessage(e, text)}
-                                    className="w-full p-3 rounded-lg border border-white/5 bg-slate-900/30 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-start gap-3"
-                                >
-                                    <div className="mt-0.5 p-1.5 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
-                                        <Sparkles size={14} />
-                                    </div>
-                                    <span className="text-xs text-brand-light group-hover:text-white transition-colors">
-                                        {text}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
                 
                 {/* Loading Indicator */}
                 {isLoading && (
@@ -606,6 +537,19 @@ const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLo
 
             {/* Input - Anchored to Bottom - Fixed Position Logic */}
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-24 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent">
+                {showSuggestions && (
+                    <div className="mb-3 flex gap-2 overflow-x-auto whitespace-nowrap">
+                        {SUGGESTIONS.map((text, i) => (
+                            <button
+                                key={i}
+                                onClick={(e) => handleSendMessage(e, text)}
+                                className="shrink-0 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 text-[11px] uppercase tracking-widest text-brand-light/70 transition-all hover:border-brand-orange/40 hover:text-brand-light"
+                            >
+                                {text}
+                            </button>
+                        ))}
+                    </div>
+                )}
                  <form onSubmit={handleSendMessage} className="relative">
                     <input
                         type="text"
