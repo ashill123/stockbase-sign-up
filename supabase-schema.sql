@@ -54,6 +54,49 @@ CREATE TRIGGER set_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+-- Create chat sessions table
+CREATE TABLE IF NOT EXISTS public.chat_sessions (
+  id UUID PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_message_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  source TEXT DEFAULT 'waitlist',
+  mode TEXT DEFAULT 'modal' CHECK (mode IN ('modal', 'widget')),
+  waitlist_email TEXT,
+  user_agent TEXT,
+  ip_hash TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- Create chat messages table
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  session_id UUID REFERENCES public.chat_sessions(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('user', 'model')),
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for chat tables
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON public.chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_last_message ON public.chat_sessions(last_message_at DESC);
+
+-- Enable RLS for chat tables
+ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow service role to do everything
+CREATE POLICY "Service role has full access to chat_sessions" ON public.chat_sessions
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role has full access to chat_messages" ON public.chat_messages
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- Grant access to chat tables for service role
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.chat_sessions TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.chat_messages TO service_role;
+
 -- Optional: Create analytics view for waitlist stats
 CREATE OR REPLACE VIEW public.waitlist_stats AS
 SELECT

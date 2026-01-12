@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, Layers, AlertCircle } from 'lucide-react';
 import { analytics } from '../lib/analytics';
+import { getChatSessionId } from '../lib/chatSession';
 
 const logoUrl = new URL('../Stockbase Main.svg', import.meta.url).href;
 
@@ -96,6 +97,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
     analytics.formSubmitted(formData.email, formData.firstName);
 
     try {
+      const sessionId = getChatSessionId();
       const response = await fetch('/api/submit-waitlist', {
         method: 'POST',
         headers: {
@@ -105,6 +107,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
+          sessionId: sessionId ?? undefined,
         }),
       });
 
@@ -165,14 +168,19 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
     setIsLoading(true);
 
     try {
+      const sessionId = getChatSessionId();
+      const payload: Record<string, unknown> = {
+        message: textToSend,
+        history: messages,
+        profile: 'detailed',
+        mode: 'modal',
+      };
+      if (sessionId) payload.sessionId = sessionId;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: textToSend,
-          history: messages,
-          profile: 'detailed',
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

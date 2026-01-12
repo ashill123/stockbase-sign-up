@@ -14,6 +14,7 @@ interface WaitlistSubmission {
   firstName: string;
   lastName: string;
   email: string;
+  sessionId?: string;
 }
 
 export default async function handler(
@@ -45,7 +46,7 @@ export default async function handler(
   }
 
   try {
-    const { firstName, lastName, email } = req.body as WaitlistSubmission;
+    const { firstName, lastName, email, sessionId } = req.body as WaitlistSubmission;
 
     // Validate input
     if (!firstName || !lastName || !email) {
@@ -188,6 +189,29 @@ export default async function handler(
     }
 
     // Return success
+    if (sessionId) {
+      try {
+        const { error: sessionError } = await supabase
+          .from('chat_sessions')
+          .upsert(
+            {
+              id: sessionId,
+              waitlist_email: email.toLowerCase(),
+              last_message_at: new Date().toISOString(),
+              source: 'waitlist',
+              mode: 'modal',
+            },
+            { onConflict: 'id' }
+          );
+
+        if (sessionError) {
+          console.error('Chat session update error:', sessionError);
+        }
+      } catch (error) {
+        console.error('Chat session update error:', error);
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Successfully added to waitlist',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Bot, ChevronRight, Lock, Sparkles } from 'lucide-react';
+import { getChatSessionId } from '../lib/chatSession';
 
 interface ChatWidgetProps {
   onOpenWaitlist: () => void;
@@ -80,14 +81,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
     setIsLoading(true);
 
     try {
+      const sessionId = getChatSessionId();
+      const payload: Record<string, unknown> = {
+        message: userText,
+        history: messages,
+        profile: 'concise',
+        mode: 'widget',
+      };
+      if (sessionId) payload.sessionId = sessionId;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          history: messages,
-          profile: 'concise',
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

@@ -20,6 +20,7 @@ High-converting waitlist landing page for **Stockbase** - The Operating System f
 - **Email Confirmation** - Automated welcome emails via Resend
 - **Analytics Tracking** - Comprehensive Google Analytics 4 event tracking
 - **Serverless API** - Vercel Functions for form submission
+- **Chat Persistence** - Stores chat sessions and messages for follow-up
 - **TypeScript** - Full type safety throughout
 - **Responsive Design** - Mobile-first Tailwind CSS implementation
 

@@ -1,10 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 
 type ChatMessage = {
   role: 'user' | 'model';
   text: string;
 };
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase =
+  supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
 const BASE_SYSTEM_PROMPT = `SYSTEM PROMPT - STOCKBASE WAITLIST AGENT
 
@@ -132,10 +138,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const { message, history = [], profile = 'detailed' } = req.body || {};
+    const { message, history = [], profile = 'detailed', sessionId, mode } = req.body || {};
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const normalizedSessionId = typeof sessionId === 'string' ? sessionId : null;
+    const normalizedMode = mode === 'widget' || mode === 'modal' ? mode : null;
+    const nowIso = new Date().toISOString();
+
+    if (supabase && normalizedSessionId) {
+      const { error: sessionError } = await supabase
+        .from('chat_sessions')
+        .upsert(
+          {
+            id: normalizedSessionId,
+            last_message_at: nowIso,
+            source: 'waitlist',
+            mode: normalizedMode || 'modal',
+            user_agent: req.headers['user-agent'] ?? null,
+          },
+          { onConflict: 'id' }
+        );
+
+      if (sessionError) {
+        console.error('Chat session upsert error:', sessionError);
+      } else {
+        const { error: messageError } = await supabase.from('chat_messages').insert({
+          session_id: normalizedSessionId,
+          role: 'user',
+          content: message,
+          created_at: nowIso,
+        });
+
+        if (messageError) {
+          console.error('Chat message insert error:', messageError);
+        }
+      }
     }
 
     const normalizedHistory = Array.isArray(history)
@@ -162,6 +202,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const result = await chat.sendMessage({ message });
     const text = result.text || 'No response available.';
+
+    if (supabase && normalizedSessionId) {
+      const { error: messageError } = await supabase.from('chat_messages').insert({
+        session_id: normalizedSessionId,
+        role: 'model',
+        content: text,
+        created_at: new Date().toISOString(),
+      });
+
+      if (messageError) {
+        console.error('Chat message insert error:', messageError);
+      }
+    }
 
     return res.status(200).json({ text });
   } catch (error) {

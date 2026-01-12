@@ -61,6 +61,7 @@ This will create:
 - Row Level Security (RLS) policies
 - Analytics views for tracking signup metrics
 - Automatic timestamp triggers
+- `chat_sessions` and `chat_messages` tables for storing chat conversations
 
 ### Step 3: Get API Credentials
 
