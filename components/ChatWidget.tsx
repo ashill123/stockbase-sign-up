@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Bot, ChevronRight, Lock } from 'lucide-react';
+import { ChatMessageContent } from './ChatMessageContent';
 import { getChatSessionId } from '../lib/chatSession';
 
 interface ChatWidgetProps {
@@ -177,7 +178,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenWaitlist }) => {
                         : 'bg-slate-800/50 border border-white/5 text-brand-light/90'
                     }`}
                   >
-                    {msg.text}
+                    <ChatMessageContent text={msg.text} />
                   </div>
                 </motion.div>
               ))}

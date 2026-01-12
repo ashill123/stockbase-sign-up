@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Send, Sparkles, Layers, AlertCircle } from 'lucide-react';
 import { analytics } from '../lib/analytics';
+import { ChatMessageContent } from './ChatMessageContent';
 import { getChatSessionId } from '../lib/chatSession';
 
 const logoUrl = new URL('../Stockbase Main.svg', import.meta.url).href;
@@ -509,15 +510,15 @@ const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLo
                         </div>
 
                         {/* Bubble */}
-                        <div className={`px-5 py-3.5 text-sm leading-relaxed backdrop-blur-sm shadow-sm max-w-[75%] ${
-                             msg.role === 'model' 
-                                ? 'bg-white/5 border border-white/10 text-brand-light rounded-2xl rounded-tl-sm' 
-                                : 'bg-brand-orange/10 border border-brand-orange/20 text-brand-light/90 rounded-2xl rounded-tr-sm'
-                        }`}>
-                            {msg.text}
-                        </div>
-                    </motion.div>
-                ))}
+                    <div className={`px-5 py-3.5 text-sm leading-relaxed backdrop-blur-sm shadow-sm max-w-[75%] ${
+                         msg.role === 'model' 
+                            ? 'bg-white/5 border border-white/10 text-brand-light rounded-2xl rounded-tl-sm' 
+                            : 'bg-brand-orange/10 border border-brand-orange/20 text-brand-light/90 rounded-2xl rounded-tr-sm'
+                    }`}>
+                        <ChatMessageContent text={msg.text} />
+                    </div>
+                </motion.div>
+            ))}
                 
                 {/* Loading Indicator */}
                 {isLoading && (
