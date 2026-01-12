@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Send, Layers, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Send, Sparkles, Layers, AlertCircle } from 'lucide-react';
 import { analytics } from '../lib/analytics';
 import { getChatSessionId } from '../lib/chatSession';
 
