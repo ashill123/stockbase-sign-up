@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, PlayCircle, Layers, HelpCircle, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Loader2, ChevronRight, ArrowLeft, Sparkles, Send, Layers, AlertCircle } from 'lucide-react';
 import { analytics } from '../lib/analytics';
 
 const logoUrl = new URL('../Stockbase Main.svg', import.meta.url).href;
@@ -19,10 +19,32 @@ interface Message {
 const MAX_FREE_INTERACTIONS = 3;
 
 const SUGGESTIONS = [
-    { text: "Run a logistics simulation", highlight: "logistics simulation", icon: PlayCircle },
-    { text: "How deep is Simpro integration?", highlight: "Simpro integration", icon: Layers },
-    { text: "Can you track copper waste?", highlight: "copper waste", icon: HelpCircle },
+    "I'm always running out of stock at the wrong time",
+    "I already use ServiceM8 - where does Stockbase fit?",
+    "Most of my admin happens at night",
+    "We have jobs booked but I don't fully trust our numbers",
+    "Quoting takes me way longer than it should",
+    "We keep over-ordering just in case",
+    "Is this another system I have to keep up to date?",
+    "How does this actually save me time?",
+    "What kind of businesses is this best for?",
+    "Can it help with quoting as well?",
+    "We're growing fast and things feel messy",
+    "Do I need to replace what I already use?",
+    "How early is early access, really?",
 ];
+
+const SUGGESTION_COUNT = 4;
+
+const getSuggestionSlice = (items: string[], count: number, offset: number) => {
+    if (items.length === 0) return [];
+    const limit = Math.min(count, items.length);
+    const slice: string[] = [];
+    for (let i = 0; i < limit; i += 1) {
+        slice.push(items[(offset + i) % items.length]);
+    }
+    return slice;
+};
 
 const WaitlistModal: React.FC<WaitlistModalProps> = ({
   onClose,
@@ -469,119 +491,137 @@ const FormView = ({ formState, handleSubmit, onSwitchToChat, gateMessage, errorM
     </motion.div>
 );
 
-const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLoading, messagesEndRef, remaining }: any) => (
-    <motion.div
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 10 }}
-        className="flex flex-col h-full relative z-20"
-    >
-        {/* Messages */}
-        <div className="flex-grow overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pb-32">
-            {messages.length === 0 && (
-                <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center justify-center h-full space-y-4 pb-12"
-                >
-                    <div className="text-brand-light/50 text-xs uppercase tracking-widest mb-2 font-bold">Suggested Questions</div>
-                    {SUGGESTIONS.map((s, i) => (
-                        <button
-                            key={i}
-                            onClick={(e) => handleSendMessage(e, s.text)}
-                            className="w-full max-w-xs p-4 rounded-xl border border-white/5 bg-slate-900/40 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-center gap-3"
-                        >
-                            <div className="p-2 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
-                                <s.icon size={16} />
-                            </div>
-                            <span className="text-sm text-brand-light group-hover:text-white transition-colors">
-                                {s.text.split(s.highlight).map((part, index, arr) => (
-                                    <React.Fragment key={index}>
-                                        {part}
-                                        {index < arr.length - 1 && (
-                                            <span className="font-heading font-extrabold text-brand-orange group-hover:text-brand-orange tracking-tight">
-                                                {s.highlight}
-                                            </span>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                            </span>
-                        </button>
-                    ))}
-                </motion.div>
-            )}
+const ChatView = ({ messages, inputValue, setInputValue, handleSendMessage, isLoading, messagesEndRef, remaining }: any) => {
+    const suggestionOffset = messages.length % SUGGESTIONS.length;
+    const suggestions = getSuggestionSlice(SUGGESTIONS, SUGGESTION_COUNT, suggestionOffset);
 
-            {messages.map((msg: Message, idx: number) => (
-                <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    key={idx} 
-                    className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                    {/* Avatar */}
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 shadow-lg ${
-                        msg.role === 'model' 
-                            ? 'bg-brand-orange shadow-brand-orange/20' 
-                            : 'bg-slate-800 border border-white/5'
-                    }`}>
-                        {msg.role === 'model' 
-                            ? <Layers size={16} className="text-slate-900" strokeWidth={2.5} />
-                            : <User size={14} className="text-brand-orange" /> 
-                        }
-                    </div>
-
-                    {/* Bubble */}
-                    <div className={`px-5 py-3.5 text-sm leading-relaxed backdrop-blur-sm shadow-sm max-w-[75%] ${
-                         msg.role === 'model' 
-                            ? 'bg-white/5 border border-white/10 text-brand-light rounded-2xl rounded-tl-sm' 
-                            : 'bg-brand-orange/10 border border-brand-orange/20 text-brand-light/90 rounded-2xl rounded-tr-sm'
-                    }`}>
-                        {msg.text}
-                    </div>
-                </motion.div>
-            ))}
-            
-            {/* Loading Indicator */}
-            {isLoading && (
-                 <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-brand-orange shadow-lg shadow-brand-orange/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <Layers size={16} className="text-slate-900" strokeWidth={2.5} />
-                    </div>
-                    <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1.5 items-center h-10 shadow-sm">
-                        <span className="w-1.5 h-1.5 bg-brand-light rounded-full animate-[bounce_1.4s_infinite_0ms]"/>
-                        <span className="w-1.5 h-1.5 bg-brand-light rounded-full animate-[bounce_1.4s_infinite_200ms]"/>
-                        <span className="w-1.5 h-1.5 bg-brand-light rounded-full animate-[bounce_1.4s_infinite_400ms]"/>
-                    </div>
-                 </div>
-            )}
-            <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input - Anchored to Bottom - Fixed Position Logic */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-24 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent">
-             <form onSubmit={handleSendMessage} className="relative">
-                <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={remaining > 0 ? "What's in it for you?" : "Limit reached..."}
-                    disabled={remaining === 0}
-                    className="w-full bg-slate-900 border border-white/10 text-brand-light text-sm py-4 pl-5 pr-12 rounded-full shadow-2xl focus:outline-none focus:border-brand-orange/50 transition-all placeholder:text-brand-light/20 disabled:opacity-50 font-sans"
-                    autoFocus
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <button 
-                        type="submit"
-                        disabled={!inputValue.trim() || isLoading || remaining === 0}
-                        className="p-2 bg-brand-orange/10 text-brand-orange rounded-full hover:bg-brand-orange hover:text-brand-dark disabled:opacity-0 transition-all"
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="flex flex-col h-full relative z-20"
+        >
+            {/* Messages */}
+            <div className="flex-grow overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pb-32">
+                {messages.length === 0 && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-center justify-center h-full space-y-4 pb-12"
                     >
-                        <Send size={18} strokeWidth={2} className="ml-0.5" />
-                    </button>
-                </div>
-            </form>
-        </div>
-    </motion.div>
-);
+                        <div className="text-brand-light/50 text-xs uppercase tracking-widest mb-2 font-bold">Suggested Questions</div>
+                        {suggestions.map((text, i) => (
+                            <button
+                                key={i}
+                                onClick={(e) => handleSendMessage(e, text)}
+                                className="w-full max-w-xs p-4 rounded-xl border border-white/5 bg-slate-900/40 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-center gap-3"
+                            >
+                                <div className="p-2 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
+                                    <Sparkles size={16} />
+                                </div>
+                                <span className="text-sm text-brand-light group-hover:text-white transition-colors">
+                                    {text}
+                                </span>
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+
+                {messages.map((msg: Message, idx: number) => (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={idx} 
+                        className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                    >
+                        {/* Avatar */}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 shadow-lg ${
+                            msg.role === 'model' 
+                                ? 'bg-brand-orange shadow-brand-orange/20' 
+                                : 'bg-slate-800 border border-white/5'
+                        }`}>
+                            {msg.role === 'model' 
+                                ? <Layers size={16} className="text-slate-900" strokeWidth={2.5} />
+                                : <User size={14} className="text-brand-orange" /> 
+                            }
+                        </div>
+
+                        {/* Bubble */}
+                        <div className={`px-5 py-3.5 text-sm leading-relaxed backdrop-blur-sm shadow-sm max-w-[75%] ${
+                             msg.role === 'model' 
+                                ? 'bg-white/5 border border-white/10 text-brand-light rounded-2xl rounded-tl-sm' 
+                                : 'bg-brand-orange/10 border border-brand-orange/20 text-brand-light/90 rounded-2xl rounded-tr-sm'
+                        }`}>
+                            {msg.text}
+                        </div>
+                    </motion.div>
+                ))}
+
+                {messages.length > 0 && suggestions.length > 0 && (
+                    <div className="pt-2">
+                        <div className="text-brand-light/40 text-[10px] uppercase tracking-widest font-bold mb-2">Suggested Next</div>
+                        <div className="space-y-2">
+                            {suggestions.map((text, i) => (
+                                <button
+                                    key={i}
+                                    onClick={(e) => handleSendMessage(e, text)}
+                                    className="w-full p-3 rounded-lg border border-white/5 bg-slate-900/30 hover:bg-brand-orange/10 hover:border-brand-orange/30 text-left transition-all group flex items-start gap-3"
+                                >
+                                    <div className="mt-0.5 p-1.5 bg-white/5 rounded-full group-hover:bg-brand-orange group-hover:text-brand-dark transition-colors">
+                                        <Sparkles size={14} />
+                                    </div>
+                                    <span className="text-xs text-brand-light group-hover:text-white transition-colors">
+                                        {text}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Loading Indicator */}
+                {isLoading && (
+                     <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-brand-orange shadow-lg shadow-brand-orange/20 flex items-center justify-center shrink-0 mt-0.5">
+                            <Layers size={16} className="text-slate-900" strokeWidth={2.5} />
+                        </div>
+                        <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1.5 items-center h-10 shadow-sm">
+                            <span className="w-1.5 h-1.5 bg-brand-light rounded-full animate-[bounce_1.4s_infinite_0ms]"/>
+                            <span className="w-1.5 h-1.5 bg-brand-light rounded-full animate-[bounce_1.4s_infinite_200ms]"/>
+                            <span className="w-1.5 h-1.5 bg-brand-light rounded-full animate-[bounce_1.4s_infinite_400ms]"/>
+                        </div>
+                     </div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input - Anchored to Bottom - Fixed Position Logic */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-24 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent">
+                 <form onSubmit={handleSendMessage} className="relative">
+                    <input
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder={remaining > 0 ? "What's in it for you?" : "Limit reached..."}
+                        disabled={remaining === 0}
+                        className="w-full bg-slate-900 border border-white/10 text-brand-light text-sm py-4 pl-5 pr-12 rounded-full shadow-2xl focus:outline-none focus:border-brand-orange/50 transition-all placeholder:text-brand-light/20 disabled:opacity-50 font-sans"
+                        autoFocus
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <button 
+                            type="submit"
+                            disabled={!inputValue.trim() || isLoading || remaining === 0}
+                            className="p-2 bg-brand-orange/10 text-brand-orange rounded-full hover:bg-brand-orange hover:text-brand-dark disabled:opacity-0 transition-all"
+                        >
+                            <Send size={18} strokeWidth={2} className="ml-0.5" />
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </motion.div>
+    );
+};
 
 const InputGroup = ({ id, label, icon: Icon, type="text", delay, value, onChange }: any) => (
     <motion.div
