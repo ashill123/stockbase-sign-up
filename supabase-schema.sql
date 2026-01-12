@@ -68,6 +68,10 @@ SELECT
   MAX(created_at) as latest_signup
 FROM public.waitlist;
 
+-- Grant permissions to service_role for the waitlist table
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.waitlist TO service_role;
+
 -- Grant access to the view
 GRANT SELECT ON public.waitlist_stats TO authenticated, anon, service_role;
 
